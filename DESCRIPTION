@@ -1,0 +1,14 @@
+Package: IMRAS
+Type: Package
+Title: IMRAS RNASeq data
+Version: 1.0
+Date: Fri Dec 15 10:40:11 2017
+Author: Carl Murie
+Maintainer: Carl Murie <cmurie@fredhutch.org>
+Description: Raw read counts and TPM values for aligned and quantified IMRAS bulk RNASeq data. Used STAR+RSEM for processing.
+License: GPL(>=3.0) 
+DataVersion: 0.1.0
+Suggests: knitr,
+    rmarkdown
+VignetteBuilder: knitr
+RoxygenNote: 6.0.1

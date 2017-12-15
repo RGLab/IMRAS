@@ -1,0 +1,66 @@
+---
+title: IMRAS RNASeq project data
+author: Carl Murie
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output: BiocStyle::html_document
+vignette: >
+  %\VignetteIndexEntry{IMRAS RNASeq project data}
+  %\VignetteEngine{knitr::rmarkdown}
+  \usepackage[utf8]{inputenc}
+---
+
+#Processing code
+  
+```{r main, echo=TRUE, message=FALSE, warning=FALSE}
+
+library(RNASeqPipelineR)
+DOPROCESS <- FALSE    ## turn off time consuming code
+
+## create and load project
+PREFIX<-"/shared/silo_researcher/Gottardo_R/cmurie_working/IMRAS"
+##createProject(project_name = "IMRAS_RNASeq" ,path = PREFIX, load_from_immport = FALSE)
+loadProject(project_dir=PREFIX, name="IMRAS_RNASeq")
+
+## build reference if necessary
+utils_dir <- "/shared/silo_researcher/Gottardo_R/10_ref_files/Reference_Genome/Homo_sapiens/UCSC/hg38"
+buildReference(path=utils_dir,gtf_file="UCSCDec2016.gtf", fasta_file="hg38.fa", 
+               isoformsFile="UCSCKnownIsoformsDec2016.txt", doSTAR=TRUE, threads=6, 
+               name="hg38")
+
+## run meat of processing
+if(DOPROCESS) {
+   AlignmentSTAR(parallel_threads=2, star_threads=3, paired=TRUE, 
+                 paired_pattern=c("_1.fastq", "_2.fastq"))
+   RSEMCalculateExpression(parallel_threads=3, bowtie_threads=1, paired=TRUE,
+                           nchunks=3, slurm=TRUE, fromBAM=TRUE, fromSTAR=TRUE,
+                           ram_per_node=3*2000)
+   RSEMAssembleExpressionMatrix(force=TRUE)
+} ## end if DOPROCESS
+
+## annotation and formatting
+annotateUCSC(genome="hg38", force=TRUE)
+##runFastQC(ncores=6)
+qc_matrix <- QualityControl(paired=TRUE)
+mData <- mergeData(mergeAnnotation=TRUE)
+count_eset <- sumDuplicates(mData$counts, mData$featureData, mData$annoData)
+tpm_eset <- sumDuplicates(mData$tpm, mData$featureData, mData$annoData)
+
+## code to create IMRAS data package
+##DataPackageR::datapackage.skeleton("IMRAS", code_files=paste0(PREFIX, "/scripts/processIMRASDec2017.Rmd"), r_object_names=c(count_eset, tpm_eset))
+
+```
+
+#List of fastq files
+
+```{r fastq, echo=FALSE}
+## list all fastq files
+fastqs <- list.files(path=paste0(PREFIX, "/IMRAS_RNASeq/FASTQ/"), pattern="*fastq")
+kable(fastqs, caption="fastq files")
+```
+
+#Session information
+
+```{r session}
+sessionInfo()
+```
+
